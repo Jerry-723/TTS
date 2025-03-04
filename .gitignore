@@ -1,8 +1,10 @@
 __pycache__
 log_out/
+outputs/
 datasets/train-00000-of-00001.parquet
 generate.py
 output_x.txt
 output.txt
 test.ipynb
 test2.ipynb
+test_transformer.ipynb
