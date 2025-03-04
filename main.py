@@ -2,6 +2,8 @@ from models import *
 from datasets import *
 from predictor import *
 import argparse
+import os
+from openai import AzureOpenAI
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -14,6 +16,12 @@ if __name__ == '__main__':
 
     dataset = TTSDataset(name=args.dataset, percent=args.cal_size)
     inference = LLMInference(args.model)
+
+    client = AzureOpenAI(
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        api_key=os.environ["AZURE_OPENAI_API_KEY"],
+        api_version="2024-02-01"
+    )
 
     predictor = conformalTTS(inference, args.alpha, dataset)
     predictor.predict()

@@ -10,12 +10,13 @@ from tqdm import tqdm
 MAX_TOKENS_THINKING = 32000
 
 class conformalTTS:
-    def __init__(self, LLMInference, alpha, dataset):
+    def __init__(self, LLMInference, alpha, dataset, client):
         self.model = LLMInference.model
         self.tokenizer = LLMInference.tokenizer
         self.template = LLMInference.template
         self.alpha = alpha
         self.dataset = dataset
+        self.client = client
 
     def calibrate(self):
         cal_dataset = self.dataset.cal_dataset
@@ -25,6 +26,7 @@ class conformalTTS:
         print("Calibrating...")
         for sample in tqdm(cal_dataset):
             prompt = self.template(sample['question']) + "<|im_start|>think"
+            thinking_trace = ""
             sampling_params = SamplingParams(
                 max_tokens=MAX_TOKENS_THINKING,
                 min_tokens=0,
@@ -40,11 +42,14 @@ class conformalTTS:
             max_tokens_thinking_tmp = MAX_TOKENS_THINKING - len(o[0].outputs[0].token_ids)
             while max_tokens_thinking_tmp >0:
                 prompt += o[0].outputs[0].text
-                answer = self.final_answer(prompt)
-                if judge_answer(answer, sample['answer']):
+                thinking_trace += o[0].outputs[0].text
+                answer = extract_answer(self.final_answer(prompt))
+                if judge_answer(answer, sample['answer'], self.client):
                     break
                 else:
                     prompt += ignore_str
+                    thinking_trace += ignore_str
+
                     sampling_params = SamplingParams(
                         max_tokens=max_tokens_thinking_tmp,
                         min_tokens=0,
@@ -60,8 +65,13 @@ class conformalTTS:
 
             if max_tokens_thinking_tmp == 0:
                 prompt += o[0].outputs[0].text
+                thinking_trace += o[0].outputs[0].text
             score = ppl_score(self.model, prompt)
             scores.append(score)
+            token_use = MAX_TOKENS_THINKING-max_tokens_thinking_tmp
+
+            with open(f"/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_calibration.jsonl", "a") as f:
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Token use": token_use, "Ground truth": sample['answer'], "PPL": score})
 
         q_level = np.ceil((n + 1)*(1 - self.alpha))/n
         tau = np.quantile(scores, q_level, method='higher')
@@ -84,8 +94,8 @@ class conformalTTS:
             prompt,
             sampling_params=sampling_params
         )
-        answer = extract_answer(o[0].outputs[0].text)
-        return answer
+        # answer = extract_answer(o[0].outputs[0].text)
+        return o[0].outputs[0].text
     
     def predict(self):
         test_dataset = self.dataset.test_dataset
@@ -100,7 +110,7 @@ class conformalTTS:
         )
         print("Predicting...")
         for sample in tqdm(test_dataset):
-            answer_set = [] ## to be modify as prediction set
+            answer_set = []
             thinking_trace = ""
 
             prompt = self.template(sample['question']) + "<|im_start|>think"
@@ -115,11 +125,11 @@ class conformalTTS:
                 thinking_trace += o[0].outputs[0].text
 
                 answer = self.final_answer(prompt)
-                answer_set.append(answer)
+                answer_set.append(extract_answer(answer))
 
-                score = ppl_score(self.model, self.tokenizer, prompt)
+                score = ppl_score(self.model, prompt)
                 if score < tau:
-                    thinking_trace += "Final Answer:" + answer 
+                    thinking_trace += "<|im_start|>answer\nFinal Answer:" + answer 
                     break
 
                 prompt += ignore_str
@@ -147,5 +157,5 @@ class conformalTTS:
                 if score > tau:
                     answer_set.append("Non of above")
             with open(f'/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_results.jsonl', 'a') as f:
-                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer']}, f)
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "PPL": score, "tau": tau}, f)
                 f.write("\n")
