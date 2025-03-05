@@ -5,7 +5,7 @@ def extract_answer(text):
     if match:
         return match.group(1)
     else:
-        return None
+        return text ## If the answer is not in the format of $\\boxed{}$, return the original text
     
 def judge_answer(question, generation, ground_truth, client):
     if generation == ground_truth:

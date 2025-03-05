@@ -39,6 +39,7 @@ class conformalTTS:
                 sampling_params = sampling_params
             )
             ignore_str = "Wait"
+            wait_count = 0
             max_tokens_thinking_tmp = MAX_TOKENS_THINKING - len(o[0].outputs[0].token_ids)
             answer_set = []
             while max_tokens_thinking_tmp >0:
@@ -51,6 +52,7 @@ class conformalTTS:
                 else:
                     prompt += ignore_str
                     thinking_trace += ignore_str
+                    wait_count += 1
 
                     sampling_params = SamplingParams(
                         max_tokens=max_tokens_thinking_tmp,
@@ -70,10 +72,10 @@ class conformalTTS:
                 thinking_trace += o[0].outputs[0].text
             score = ppl_score(self.model, prompt)
             scores.append(score)
-            token_use = MAX_TOKENS_THINKING-max_tokens_thinking_tmp
+            token_use = MAX_TOKENS_THINKING - max_tokens_thinking_tmp
 
-            with open(f"/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_calibration.jsonl", "a") as f:
-                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Token use": token_use, "Answer set": answer_set, "Ground truth": sample['answer'], "PPL": score}, f)
+            with open(f"outputs/{self.dataset.name}_calibration.jsonl", "a") as f:
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Token use": token_use, "Answer set": answer_set, "Ground truth": sample['answer'], "Wait count": wait_count, "PPL": score}, f)
                 f.write("\n")
 
         q_level = np.ceil((n + 1)*(1 - self.alpha))/n
@@ -159,6 +161,6 @@ class conformalTTS:
                 score = ppl_score(self.model, prompt)
                 if score > tau:
                     answer_set.append("Non of above")
-            with open(f'/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_results.jsonl', 'a') as f:
+            with open(f'outputs/{self.dataset.name}_results.jsonl', 'a') as f:
                 json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "PPL": score, "tau": tau}, f)
                 f.write("\n")

@@ -15,7 +15,7 @@ class TTSDataset:
     def load_dataset(self):
         dataset = []
         if self.name == "aime":
-            df = pd.read_parquet("/data/home/jiaxi/home/TTS/datasets/assets/aime_2024_problems.parquet")
+            df = pd.read_parquet("datasets/assets/aime_2024_problems.parquet")
             for i, row in df.iterrows():
                 dataset.append({
                     "question": row["Problem"],
@@ -24,13 +24,13 @@ class TTSDataset:
                 })
 
         elif self.name == "gpqa":
-            # with open("/data/home/jiaxi/home/TTS/datasets/gpqa_diamond.csv", "r") as f:
+            # with open("datasets/gpqa_diamond.csv", "r") as f:
             #     reader = csv.DictReader(f)
             #     for row in reader:
             pass
 
         elif self.name == "math500":
-            with open("/data/home/jiaxi/home/TTS/datasets/assets/math500.jsonl", "r") as f:
+            with open("datasets/assets/math500.jsonl", "r") as f:
                 for line in f:
                     data = json.loads(line)
                     dataset.append({
@@ -39,7 +39,7 @@ class TTSDataset:
                         "answer": data["answer"]
                     })
         elif self.name == "gsm8k":
-            df = pd.read_parquet("/data/home/jiaxi/home/TTS/datasets/assets/gsm8k/test-00000-of-00001.parquet")
+            df = pd.read_parquet("datasets/assets/gsm8k/test-00000-of-00001.parquet")
             for i, row in df.iterrows():
                 pattern = r'####\s*(.+)'
                 match = re.search(pattern, row["answer"])
