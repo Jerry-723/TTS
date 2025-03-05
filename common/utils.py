@@ -1,7 +1,7 @@
 import re
 
 def extract_answer(text):
-    match = re.search(r'\\boxed\{(.+?)\}', text)
+    match = re.search(r'\$\\boxed\{(.*?)\}\$', text)
     if match:
         return match.group(1)
     else:

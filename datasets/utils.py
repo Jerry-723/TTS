@@ -1,6 +1,7 @@
 import json
 import csv
 import pandas as pd
+import re
 import random
 random.seed(2025)
 
@@ -37,6 +38,15 @@ class TTSDataset:
                         "solution": data["solution"],
                         "answer": data["answer"]
                     })
+        elif self.name == "gsm8k":
+            df = pd.read_parquet("/data/home/jiaxi/home/TTS/datasets/assets/gsm8k/test-00000-of-00001.parquet")
+            for i, row in df.iterrows():
+                pattern = r'####\s*(.+)'
+                match = re.search(pattern, row["answer"])
+                dataset.append({
+                    "question": row["question"],
+                    "answer": match.group(1)
+                })
 
         return dataset
     

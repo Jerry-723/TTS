@@ -8,7 +8,7 @@ from transformers import AutoModelForCausalLM
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, choices=["aime", "math500"], default="aime")
+    parser.add_argument("--dataset", type=str, choices=["aime", "math500", "gsm8k"], default="aime")
     parser.add_argument("--model", type=str, choices=["s1-32B"], default="s1-32B")
     parser.add_argument("--cal_size", type=float, default=0.5)
     parser.add_argument("--alpha", type=float, default=0.1)
