@@ -27,7 +27,7 @@ def ppl_score(model, text):
     for i in o[0].prompt_logprobs:
         if i is not None:
             _, logprob = next(iter(i.items()))
-            logprob_total += logprob
+            logprob_total += logprob.logprob 
     avg_logprob = logprob_total / (len(o[0].prompt_logprobs)-1)
     ppl = math.exp(-avg_logprob)
     return ppl

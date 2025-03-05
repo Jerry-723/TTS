@@ -40,11 +40,13 @@ class conformalTTS:
             )
             ignore_str = "Wait"
             max_tokens_thinking_tmp = MAX_TOKENS_THINKING - len(o[0].outputs[0].token_ids)
+            answer_set = []
             while max_tokens_thinking_tmp >0:
                 prompt += o[0].outputs[0].text
                 thinking_trace += o[0].outputs[0].text
                 answer = extract_answer(self.final_answer(prompt))
-                if judge_answer(answer, sample['answer'], self.client):
+                answer_set.append(answer)
+                if judge_answer(sample['question'], answer, sample['answer'], self.client):
                     break
                 else:
                     prompt += ignore_str
@@ -71,7 +73,8 @@ class conformalTTS:
             token_use = MAX_TOKENS_THINKING-max_tokens_thinking_tmp
 
             with open(f"/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_calibration.jsonl", "a") as f:
-                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Token use": token_use, "Ground truth": sample['answer'], "PPL": score})
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Token use": token_use, "Answer set": answer_set, "Ground truth": sample['answer'], "PPL": score}, f)
+                f.write("\n")
 
         q_level = np.ceil((n + 1)*(1 - self.alpha))/n
         tau = np.quantile(scores, q_level, method='higher')
@@ -153,7 +156,7 @@ class conformalTTS:
                 answer_set.append(answer)
                 thinking_trace += o[0].outputs[0].text + "Final Answer:" + answer
 
-                score = ppl_score(self.model, self.tokenizer, prompt)
+                score = ppl_score(self.model, prompt)
                 if score > tau:
                     answer_set.append("Non of above")
             with open(f'/data/home/jiaxi/home/TTS/outputs/{self.dataset.name}_results.jsonl', 'a') as f:

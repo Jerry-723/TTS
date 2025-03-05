@@ -7,11 +7,11 @@ def extract_answer(text):
     else:
         return None
     
-def judge_answer(generation, ground_truth, client):
+def judge_answer(question, generation, ground_truth, client):
     if generation == ground_truth:
         return True
     else:
-        prompt = f"Please help me determine whether the following two answers are equal, ignoring any errors that might be caused by the format and ignoring any numerical units\' difference.\nThe first answer: {generation}\nThe second answer: {ground_truth}\nPlease give your answer in the following format: 'Equal' or 'Not Equal'."
+        prompt = f"Given the question: {question}\nPlease help me determine whether the following two answers to the quesiton are equivalent, ignoring any errors that might be caused by the format and ignoring any numerical units\' difference.\nThe first answer: {generation}\nThe second answer: {ground_truth}\nPlease give your answer in the following format: 'Equivalent' or 'Not Equivalent'."
         response = client.chat.completions.create(
             model = "gpt-4o",
             n = 1,
@@ -24,9 +24,9 @@ def judge_answer(generation, ground_truth, client):
             temperature = 0.0
         )
         decision = response.choices[0].message.content
-        if decision == 'Equal':
+        if decision == 'Equivalent':
             return True
-        elif decision == 'Not Equal':
+        elif decision == 'Not Equivalent':
             return False
         else:
             return False ## GPT4o doesn't follow the instruct, giving a False by default

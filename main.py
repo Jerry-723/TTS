@@ -4,6 +4,7 @@ from predictor import *
 import argparse
 import os
 from openai import AzureOpenAI
+from transformers import AutoModelForCausalLM
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -23,5 +24,5 @@ if __name__ == '__main__':
         api_version="2024-02-01"
     )
 
-    predictor = conformalTTS(inference, args.alpha, dataset)
+    predictor = conformalTTS(inference, args.alpha, dataset, client=client)
     predictor.predict()
