@@ -1,6 +1,6 @@
 __pycache__
 log_out/
-outputs/
+# outputs/
 datasets/train-00000-of-00001.parquet
 generate.py
 output_x.txt
