@@ -155,7 +155,7 @@ class conformalTTS:
             if max_tokens_thinking_tmp == 0:
                 prompt += o[0].outputs[0].text
                 answer = self.final_answer(prompt)
-                answer_set.append(answer)
+                answer_set.append(extract_answer(answer))
                 thinking_trace += o[0].outputs[0].text + "<|im_start|>answer\nFinal Answer:" + answer
 
                 score = ppl_score(self.model, prompt)
@@ -193,7 +193,7 @@ class conformalTTS:
             temperature=0.0
         )
         print("Budget force predicting...")
-        for sample in test_dataset:
+        for sample in tqdm(test_dataset):
             answer_set = []
             thinking_trace = ""
 
@@ -232,5 +232,5 @@ class conformalTTS:
                 answer_set.append(extract_answer(answer))
                 thinking_trace += o[0].outputs[0].text + "<|im_start|>answer\nFinal Answer:" + answer
             with open(f'outputs/{self.dataset.name}_results_budget_force.jsonl', 'a') as f:
-                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "tau": tau_token}, f)
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "tau": int(tau_token)}, f)
                 f.write("\n")
