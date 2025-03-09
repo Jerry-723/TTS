@@ -156,11 +156,81 @@ class conformalTTS:
                 prompt += o[0].outputs[0].text
                 answer = self.final_answer(prompt)
                 answer_set.append(answer)
-                thinking_trace += o[0].outputs[0].text + "Final Answer:" + answer
+                thinking_trace += o[0].outputs[0].text + "<|im_start|>answer\nFinal Answer:" + answer
 
                 score = ppl_score(self.model, prompt)
                 if score > tau:
                     answer_set.append("Non of above")
             with open(f'outputs/{self.dataset.name}_results.jsonl', 'a') as f:
                 json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "PPL": score, "tau": tau}, f)
+                f.write("\n")
+
+    def tau_tokens(self):
+        """
+        用一次得到正确结果的tokens的90%分位数作为tau的尝试
+        """
+        tokens = []
+        name = self.dataset.name
+        file_path = f"outputs/{name}_calibration.jsonl"
+        with open(file_path, "r") as f:
+            for line in f:
+                data = json.loads(line)
+                if data['Token use'] != 32000 and data['Wait count'] == 0:
+                    tokens.append(data['Token use'])
+        q_level = np.ceil((len(tokens) + 1)*(1 - self.alpha))/len(tokens)
+        tau = np.quantile(tokens, q_level, method='higher')
+        return tau
+
+    def budget_force_predict(self):
+        test_dataset = self.dataset.test_dataset
+        tau_token = self.tau_tokens()
+        stop_token_ids = self.tokenizer("<|im_start|><|im_end|>")["input_ids"]
+        sampling_params = SamplingParams(
+            max_tokens=tau_token,
+            min_tokens=0,
+            stop_token_ids=stop_token_ids,
+            skip_special_tokens=False,
+            temperature=0.0
+        )
+        print("Budget force predicting...")
+        for sample in test_dataset:
+            answer_set = []
+            thinking_trace = ""
+
+            prompt = self.template(sample['question']) + "<|im_start|>think"
+            o = self.model.generate(
+                prompt,
+                sampling_params=sampling_params
+            )
+            ignore_str = "Wait"
+            max_budget_tokens_tmp = tau_token - len(o[0].outputs[0].token_ids)
+            while max_budget_tokens_tmp > 0:
+                prompt += o[0].outputs[0].text
+                thinking_trace += o[0].outputs[0].text
+
+                answer = self.final_answer(prompt)
+                answer_set.append(extract_answer(answer))
+
+                prompt += ignore_str
+                thinking_trace += ignore_str
+
+                sampling_params = SamplingParams(
+                    max_tokens=max_budget_tokens_tmp,
+                    min_tokens=0,
+                    stop_token_ids=stop_token_ids,
+                    skip_special_tokens=False,
+                    temperature=0.0
+                )
+                o = self.model.generate(
+                    prompt,
+                    sampling_params=sampling_params
+                )
+                max_budget_tokens_tmp -= len(o[0].outputs[0].token_ids)
+            if max_budget_tokens_tmp == 0:
+                prompt += o[0].outputs[0].text
+                answer = self.final_answer(prompt)
+                answer_set.append(extract_answer(answer))
+                thinking_trace += o[0].outputs[0].text + "<|im_start|>answer\nFinal Answer:" + answer
+            with open(f'outputs/{self.dataset.name}_results_budget_force.jsonl', 'a') as f:
+                json.dump({"Question": sample['question'], "Thinking trace": thinking_trace, "Predicted set": answer_set, "Ground truth": sample['answer'], "tau": tau_token}, f)
                 f.write("\n")
