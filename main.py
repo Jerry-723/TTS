@@ -26,4 +26,6 @@ if __name__ == '__main__':
 
     predictor = conformalTTS(inference, args.alpha, dataset, client=client)
     # predictor.predict()
-    predictor.budget_force_predict()
+    # predictor.budget_force_predict()
+    # predictor.min_tokens()
+    predictor.no_thinking()
