@@ -43,7 +43,7 @@ class conformalTTS:
             wait_count = 0
             max_tokens_thinking_tmp = MAX_TOKENS_THINKING - len(o[0].outputs[0].token_ids)
             answer_set = []
-            while max_tokens_thinking_tmp >0:
+            while max_tokens_thinking_tmp > 0:
                 prompt += o[0].outputs[0].text
                 thinking_trace += o[0].outputs[0].text
                 answer = extract_answer(self.final_answer(prompt))
@@ -85,7 +85,7 @@ class conformalTTS:
 
     def min_tokens(self):
         cal_dataset = self.dataset.cal_dataset
-        stop_token_ids = self.tokenizer("<|im_start|><|im_end|>")["input_ids"]
+        stop_token_ids = self.tokenizer("<|im_start|><|im_end|>")["input_ids"] # 
         print("Calculating min tokens...")
         for sample in tqdm(cal_dataset):
             prompt = self.template(sample['question']) + "<|im_start|>think"
@@ -96,13 +96,15 @@ class conformalTTS:
                     min_tokens = 0,
                     stop_token_ids = stop_token_ids,
                     skip_special_tokens = False,
-                    temperature = 0.0
+                    temperature = 0.0   # 0 means greedy decoding
                 )
+                
                 o = self.model.generate(
                     prompt,
                     sampling_params = sampling_params
                 )
-                prompt += o[0].outputs[0].text
+                
+                prompt += o[0].outputs[0].text 
                 temp_left_tokens = THINKNG_STEP_TOKENS - len(o[0].outputs[0].token_ids)
                 while temp_left_tokens > 1: ## 1 is the length of "Wait"
                     sampling_params = SamplingParams(
@@ -117,13 +119,16 @@ class conformalTTS:
                         prompt,
                         sampling_params = sampling_params
                     )
+                    
                     prompt += o[0].outputs[0].text
                     temp_left_tokens -= len(o[0].outputs[0].token_ids)
+                    
                 token_used += THINKNG_STEP_TOKENS
                 final_answer = self.final_answer(prompt)
                 answer = extract_answer(final_answer)
                 if judge_answer(sample['question'], answer, sample['answer'], self.client):
                     break
+                
             with open(f"outputs/{self.dataset.name}_calibration_min_tokens.jsonl", "a") as f:
                 json.dump({"Question": sample['question'], "Thinking trace": prompt, "Token use": token_used, "Predict answer": answer, "Ground truth": sample['answer']}, f)
                 f.write("\n")
