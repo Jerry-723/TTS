@@ -65,7 +65,7 @@ for i, p in enumerate(prompts):
     prompt += o[0].outputs[0].text # You can also append "Final Answer:" here like we do for some evaluations to prevent the model from just continuing to reason in its answer when early exiting
     stop_token_ids = tok("<|im_end|>")["input_ids"]
     sampling_params = SamplingParams(
-        max_tokens=32768,
+        max_tokens=5000,
         min_tokens=0,
         stop_token_ids=stop_token_ids,
         skip_special_tokens=False,

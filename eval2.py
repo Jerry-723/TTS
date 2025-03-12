@@ -3,12 +3,14 @@ from transformers import AutoTokenizer
 from datasets import load_dataset, load_from_disk, Dataset
 import pdb
 import json
+from common import save_to_json
 
 
 def get_dataset(dataset_name):
     if dataset_name == "s1K":
         dataset = load_from_disk("/mnt/sharedata/ssd2/users/zhanghx/dataset/s1K")
         dataset = dataset['train']
+        
     
     elif dataset_name.name == "math500":
         dataset = []
@@ -26,7 +28,7 @@ def get_dataset(dataset_name):
         raise ValueError("Invalid dataset name")
     
     return dataset
-    
+
 
 def eval():
     data = get_dataset("s1K")    
@@ -44,21 +46,42 @@ def eval():
     stop_token_ids = tok("<|im_end|>")["input_ids"]
 
     sampling_params = SamplingParams(
-        max_tokens=32768,
+        max_tokens=5000,
         min_tokens=0,
         stop_token_ids=stop_token_ids,
         temperature=0.0, # 0.0 means deterministic
+        logprobs=True
     )
-
+    
+    data = data.select(range(500))
+    count = 0
     for example in data:
-        # question = example['question']
-        question = "How many r in raspberry"
+        question = example['question']
         prompt = "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n" + question + "<|im_end|>\n<|im_start|>assistant\n"
         outputs = model.generate(prompt, sampling_params=sampling_params)
-        print(outputs[0].outputs[0].text)
-        pdb.set_trace()
+        response = outputs[0].outputs[0].text
+        tokens_nums = len(outputs[0].outputs[0].token_ids)
+        logprobs = outputs[0].outputs[0].logprobs
+        perplexity, probs = get_perplexity(logprobs) 
+        
+        # print(outputs[0].outputs[0].text)
+        example['response'] = response
+        example['tokens_nums'] = tokens_nums
+        example['perplexity'] = perplexity
+        example['logprobs'] = probs
+        save_to_json(example, "results/generation/s1K_500.json")
+        count += 1
+        print(f"----------finish {count}----------------")
+        
+def get_perplexity(logprobs):
+    probs = []
+    for logprob in logprobs:
+        for key, value in logprob.items():
+            log_prob = value.logprob
+            probs.append(log_prob)
+    perplexity = 2 ** (-sum(probs[:-1]) / len(probs))
+    return perplexity, probs
 
-
-    
 if __name__ == "__main__":
     eval()
+    
