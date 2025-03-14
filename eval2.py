@@ -12,7 +12,7 @@ def get_dataset(dataset_name):
         dataset = dataset['train']
         
     
-    elif dataset_name.name == "math500":
+    elif dataset_name == "math500":
         dataset = []
         with open("dataset/assets/math500.jsonl", "r") as f:
             for line in f:
@@ -23,19 +23,16 @@ def get_dataset(dataset_name):
                     "answer": data["answer"]
                 })
         dataset = Dataset.from_list(dataset)
-        
     else:
         raise ValueError("Invalid dataset name")
-    
     return dataset
 
 
 def eval():
-    data = get_dataset("s1K")    
-    
+    data = get_dataset("s1K")
     model = LLM(
         model = "/mnt/sharedata/ssd2/users/zhanghx/s1-32B",
-        tensor_parallel_size=4, #
+        tensor_parallel_size=8, #
         gpu_memory_utilization=0.9,
     )
     tok = AutoTokenizer.from_pretrained(
@@ -46,15 +43,15 @@ def eval():
     stop_token_ids = tok("<|im_end|>")["input_ids"]
 
     sampling_params = SamplingParams(
-        max_tokens=5000,
+        max_tokens=32768,
         min_tokens=0,
         stop_token_ids=stop_token_ids,
         temperature=0.0, # 0.0 means deterministic
         logprobs=True
     )
     
-    data = data.select(range(500))
     count = 0
+    data = data.select(range(2))
     for example in data:
         question = example['question']
         prompt = "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n" + question + "<|im_end|>\n<|im_start|>assistant\n"
@@ -69,7 +66,7 @@ def eval():
         example['tokens_nums'] = tokens_nums
         example['perplexity'] = perplexity
         example['logprobs'] = probs
-        save_to_json(example, "results/generation/s1K_500.json")
+        save_to_json(example, "results/generation/s1K_math.json")
         count += 1
         print(f"----------finish {count}----------------")
         
@@ -84,4 +81,11 @@ def get_perplexity(logprobs):
 
 if __name__ == "__main__":
     eval()
+    # Dataset =  get_dataset("s1K")
     
+    # data = []
+    # for example in Dataset:
+    #     answer = example['cot_type']
+    #     if answer == "math":
+    #         data.append(example)
+    # print(len(data))
