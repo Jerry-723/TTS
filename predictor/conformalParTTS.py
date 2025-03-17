@@ -1,8 +1,9 @@
 from vllm import SamplingParams
 import numpy as np
 import json
+from tqdm import tqdm
 
-class conformalSeqTTS:
+class conformalParTTS:
     def __init__(self, LLMInference, cal_set, pred_set, batch_size):
         self.model = LLMInference.model
         self.tokenizer = LLMInference.tokenizer
@@ -34,7 +35,7 @@ class conformalSeqTTS:
     def calibrate(self):
         stop_token_ids = self.tokenizer("<｜end▁of▁sentence｜>")["input_ids"]
         total_batchs = int(len(self.cal_set)/self.batch_size) + 1
-        for i in range(total_batchs):
+        for i in tqdm(range(total_batchs)):
             batch = self.cal_set[i*self.batch_size:(i+1)*self.batch_size]
             prompts = [self.template(p["question"]) for p in batch]
             answers = [p["answer"] for p in batch]
