@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, StoppingCriteria, 
 
 pretrained_model_dic = {
     "s1-32B": "/mnt/sharedata/hdd/jiaxi/model/s1-32B",
+    "DeepSeek-R1-Distill-Qwen-1.5B": "/mnt/sharedata/hdd/jiaxi/model/DeepSeek-R1-Distill-Qwen-1.5B",
 }
 
 class KeywordsStoppingCriteria(StoppingCriteria):
@@ -22,8 +23,8 @@ class LLMInference:
             self.name = name
             # self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_dic[name], device_map="auto", trust_remote_code=True).eval().half()
             self.model = LLM(pretrained_model_dic[name],
-                            tensor_parallel_size=4,
-                            gpu_memory_utilization=0.5,
+                            tensor_parallel_size=8,
+                            gpu_memory_utilization=0.45,
                             # max_num_batched_tokens=512,
                             enable_chunked_prefill=True)
             self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model_dic[name])
@@ -34,4 +35,13 @@ class LLMInference:
     def prompt_template(self):
         if self.name == "s1-32B":
             return lambda p: "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n" + p + "<|im_end|>\n<|im_start|>assistant\n"
+        elif self.name == "DeepSeek-R1-Distill-Qwen-1.5B":
+            return lambda p: self.tokenizer.apply_chat_template(
+                [
+                    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
+                    {"role": "user", "content": p}
+                ],
+                tokenize=False,
+                add_generation_prompt=True
+            )
         
