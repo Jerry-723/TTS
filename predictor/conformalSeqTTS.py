@@ -8,6 +8,7 @@ import json
 from tqdm import tqdm
 
 MAX_TOKENS_THINKING = 32000
+THINKNG_STEP_TOKENS = 500
 
 class conformalTTS:
     def __init__(self, LLMInference, alpha, dataset, client):
@@ -81,7 +82,74 @@ class conformalTTS:
         q_level = np.ceil((n + 1)*(1 - self.alpha))/n
         tau = np.quantile(scores, q_level, method='higher')
         return tau
-    
+
+    def min_tokens(self):
+        cal_dataset = self.dataset.cal_dataset
+        stop_token_ids = self.tokenizer("<|im_start|><|im_end|>")["input_ids"]
+        print("Calculating min tokens...")
+        for sample in tqdm(cal_dataset):
+            prompt = self.template(sample['question']) + "<|im_start|>think"
+            token_used = 0
+            while token_used < MAX_TOKENS_THINKING:
+                sampling_params = SamplingParams(
+                    max_tokens = THINKNG_STEP_TOKENS,
+                    min_tokens = 0,
+                    stop_token_ids = stop_token_ids,
+                    skip_special_tokens = False,
+                    temperature = 0.0
+                )
+                o = self.model.generate(
+                    prompt,
+                    sampling_params = sampling_params
+                )
+                prompt += o[0].outputs[0].text
+                temp_left_tokens = THINKNG_STEP_TOKENS - len(o[0].outputs[0].token_ids)
+                while temp_left_tokens > 1: ## 1 is the length of "Wait"
+                    sampling_params = SamplingParams(
+                        max_tokens = temp_left_tokens - 1,
+                        min_tokens = 0,
+                        stop_token_ids = stop_token_ids,
+                        skip_special_tokens = False,
+                        temperature = 0.0
+                    )
+                    prompt += "Wait"
+                    o = self.model.generate(
+                        prompt,
+                        sampling_params = sampling_params
+                    )
+                    prompt += o[0].outputs[0].text
+                    temp_left_tokens -= len(o[0].outputs[0].token_ids)
+                token_used += THINKNG_STEP_TOKENS
+                final_answer = self.final_answer(prompt)
+                answer = extract_answer(final_answer)
+                if judge_answer(sample['question'], answer, sample['answer'], self.client):
+                    break
+            with open(f"outputs/{self.dataset.name}_calibration_min_tokens.jsonl", "a") as f:
+                json.dump({"Question": sample['question'], "Thinking trace": prompt, "Token use": token_used, "Predict answer": answer, "Ground truth": sample['answer']}, f)
+                f.write("\n")
+
+    def no_thinking(self):
+        cal_dataset = self.dataset.cal_dataset
+        stop_token_ids = self.tokenizer("\n\n<|im_end|>")["input_ids"]
+        print("No thinking...")
+        for sample in tqdm(cal_dataset):
+            prompt = self.template(sample['question']) + "<|im_start|>answer\nFinal Answer: The final answer is"
+            sampling_params = SamplingParams(
+                max_tokens = MAX_TOKENS_THINKING,
+                min_tokens = 0,
+                stop_token_ids = stop_token_ids,
+                skip_special_tokens = False,
+                temperature = 0.0
+            )
+            o = self.model.generate(
+                prompt,
+                sampling_params = sampling_params
+            )
+            answer = extract_answer(o[0].outputs[0].text)
+            with open(f"outputs/{self.dataset.name}_nothinking.jsonl", "a") as f:
+                json.dump({"Question": sample['question'], "Answer": answer}, f)
+                f.write("\n")
+
     def final_answer(self, text):
         """
         Get final answer from the template answer between \\boxed{}

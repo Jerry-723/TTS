@@ -33,3 +33,5 @@ if __name__ == '__main__':
     # predictor.predict()
     # predictor.budget_force_predict()
     predictor.calibrate()
+    # predictor.min_tokens()
+    # predictor.no_thinking()
