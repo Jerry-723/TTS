@@ -6,6 +6,29 @@ def extract_answer(text):
         return match.group(1)
     else:
         return text ## If the answer is not in the format of $\\boxed{}$, return the original text
+
+def extract_qwen_answer(text):
+    if text is None:
+        return None
+    boxed_tag = r"\boxed{"
+    tag_len = len(boxed_tag)
+    start_pos = 0
+    start = text.find(boxed_tag, start_pos)
+    if start == -1:
+        return None
+    content_start = start + tag_len
+    counter = 1
+    content_end = content_start
+    while content_end < len(text) and counter > 0:
+        if text[content_end] == '{':
+            counter += 1
+        elif text[content_end] == '}':
+            counter -= 1
+        content_end += 1
+    if counter == 0:
+        return text[content_start:content_end-1]
+    else:
+        return None
     
 def judge_answer(question, generation, ground_truth, client):
     if generation == ground_truth:

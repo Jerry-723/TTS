@@ -23,10 +23,11 @@ class LLMInference:
             self.name = name
             # self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_dic[name], device_map="auto", trust_remote_code=True).eval().half()
             self.model = LLM(pretrained_model_dic[name],
-                            tensor_parallel_size=8,
-                            gpu_memory_utilization=0.45,
+                            tensor_parallel_size=1,
+                            gpu_memory_utilization=0.9,
                             # max_num_batched_tokens=512,
                             enable_chunked_prefill=True)
+            # self.model = None
             self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model_dic[name])
             self.template = self.prompt_template()
         else:
