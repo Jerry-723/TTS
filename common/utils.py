@@ -6,6 +6,10 @@ def extract_answer(text):
         return match.group(1)
     else:
         return text ## If the answer is not in the format of $\\boxed{}$, return the original text
+    
+def extract_s1_answer(text):
+    match = re.search(r'(.+?)}\$', text)
+    return match.group(1) if match else text
 
 def extract_qwen_answer(text):
     if text is None:

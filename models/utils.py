@@ -6,6 +6,8 @@ pretrained_model_dic = {
     "s1-32B": "/mnt/sharedata/hdd/jiaxi/model/s1-32B",
     "DeepSeek-R1-Distill-Qwen-1.5B": "/mnt/sharedata/hdd/jiaxi/model/DeepSeek-R1-Distill-Qwen-1.5B",
     "s1.1-3B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-3B",
+    "s1.1-7B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-7B",
+    "s1.1-14B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-14B",
 }
 
 class KeywordsStoppingCriteria(StoppingCriteria):
@@ -35,7 +37,7 @@ class LLMInference:
             print("Error: Model Type")
     
     def prompt_template(self):
-        if self.name == "s1-32B" or self.name == "s1.1-3B":
+        if self.name == "s1-32B" or self.name == "s1.1-3B" or self.name == "s1.1-7B" or self.name == "s1.1-14B":
             return lambda p: "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n" + p + "<|im_end|>\n<|im_start|>assistant\n"
         elif self.name == "DeepSeek-R1-Distill-Qwen-1.5B":
             return lambda p: self.tokenizer.apply_chat_template(
