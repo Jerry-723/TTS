@@ -2,7 +2,7 @@ from vllm import SamplingParams
 from tqdm import tqdm
 import json
 import math
-from common import is_equiv, extract_s1_answer
+from common import is_equiv, extract_s1_answer, judge_answer
 
 THINKING_GAP=100
 
@@ -83,7 +83,7 @@ class EfficientPred:
         gen_answers = [extract_s1_answer(o.outputs[0].text) for o in outputs]
         return gen_answers
     
-    def min_tokens(self):
+    def min_tokens(self, gpt=False, client=None):
         with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_fullthinking_nodup.jsonl", "r", encoding="utf-8") as f:
             lines = f.readlines()
             questions = [json.loads(l)["question"] for l in lines][self.partial * self.per_partial:(self.partial+1) * self.per_partial]
@@ -101,6 +101,7 @@ class EfficientPred:
 
             thinking_budget = [len(r) for r in responses_token_ids]
             token_used = [0] * len(prompts)
+            answer_traces = [[]]*len(prompts)
 
             indices_to_continue = [j for j in range(len(prompts)) if token_used[j] < thinking_budget[j]]
 
@@ -113,9 +114,13 @@ class EfficientPred:
                 intermediate_responses = self.final_answer(query_token_ids)
                 for j, inter_res in zip(indices_to_continue, intermediate_responses):
                     current_answers[j] = inter_res
-                indices_to_continue = [j for j, r in zip(indices_to_continue, intermediate_responses) if not is_equiv(r, ground_truth_batch[j])]
+                    answer_traces[j].append(inter_res)
+                if gpt == True:
+                    indices_to_continue = [j for j, r in zip(indices_to_continue, intermediate_responses) if not is_equiv(r, ground_truth_batch[j]) and not judge_answer(question_batch[j], r, ground_truth_batch[j], client)]
+                else:
+                    indices_to_continue = [j for j, r in zip(indices_to_continue, intermediate_responses) if not is_equiv(r, ground_truth_batch[j])]
                 indices_to_continue = [j for j in indices_to_continue if token_used[j] < thinking_budget[j]]
 
             with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_min_tokens_rough.jsonl", "a", encoding="utf-8") as f:
-                for q, g, r, budget, token, res_t in zip(question_batch, ground_truth_batch, current_answers, thinking_budget, token_used, responses_token_ids):
-                    f.write(json.dumps({"question": q, "ground_truth": g, "token_used": token, "thinking_budget": budget, "generated_answer": r, "thinking": self.tokenizer.decode(res_t[:token])}, ensure_ascii=False) + "\n")
+                for q, g, r, ans_t, budget, token, res_t in zip(question_batch, ground_truth_batch, current_answers, answer_traces, thinking_budget, token_used, responses_token_ids):
+                    f.write(json.dumps({"question": q, "ground_truth": g, "token_used": token, "thinking_budget": budget, "generated_answer": r, "answer_trace": ans_t, "thinking": self.tokenizer.decode(res_t[:token])}, ensure_ascii=False) + "\n")
