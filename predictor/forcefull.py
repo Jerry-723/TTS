@@ -101,7 +101,7 @@ class EfficientPred:
 
             thinking_budget = [len(r) for r in responses_token_ids]
             token_used = [0] * len(prompts)
-            answer_traces = [[]]*len(prompts)
+            answer_traces = [[] for _ in range(len(prompts))]
 
             indices_to_continue = [j for j in range(len(prompts)) if token_used[j] < thinking_budget[j]]
 
