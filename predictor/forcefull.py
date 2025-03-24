@@ -116,6 +116,6 @@ class EfficientPred:
                 indices_to_continue = [j for j, r in zip(indices_to_continue, intermediate_responses) if not is_equiv(r, ground_truth_batch[j])]
                 indices_to_continue = [j for j in indices_to_continue if token_used[j] < thinking_budget[j]]
 
-            with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_min_tokens.jsonl", "a", encoding="utf-8") as f:
+            with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_min_tokens_rough.jsonl", "a", encoding="utf-8") as f:
                 for q, g, r, budget, token, res_t in zip(question_batch, ground_truth_batch, current_answers, thinking_budget, token_used, responses_token_ids):
                     f.write(json.dumps({"question": q, "ground_truth": g, "token_used": token, "thinking_budget": budget, "generated_answer": r, "thinking": self.tokenizer.decode(res_t[:token])}, ensure_ascii=False) + "\n")

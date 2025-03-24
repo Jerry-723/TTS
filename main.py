@@ -1,9 +1,11 @@
 from models import *
 from datasets import *
 from predictor import *
+from common import *
 import argparse
 import os
 from openai import AzureOpenAI
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -14,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument("--alpha", type=float, default=0.1)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--partial", type=int, default=0)
+    parser.add_argument("--task", type=str, choices=["fullthinking", "min_token"], default="fullthinking")
 
     args = parser.parse_args()
 
@@ -31,12 +34,7 @@ if __name__ == '__main__':
     # predictor = conformalTTS(inference, args.alpha, dataset, client=client)
     # predictor = conformalParTTS(inference, cal_set, pred_set, args.batch_size, args.partial, client)
     predictor = EfficientPred(inference, dataset, args.partial, args.batch_size)
-    predictor.forcefull(10000)
-    # predictor.min_tokens()
-    # predictor.predict(args.alpha)
-    # predictor.budget_force_predict()
-    # predictor.calibrate()
-    # predictor.get_confs()
-    # predictor.min_tokens()
-    # predictor.no_thinking()
-    # predictor.get_coverage(args.alpha)
+    if args.task == "fullthinking":
+        predictor.forcefull(10000)
+    if args.task == "min_token":
+        predictor.min_tokens()
