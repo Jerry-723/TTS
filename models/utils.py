@@ -5,9 +5,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, StoppingCriteria, 
 pretrained_model_dic = {
     "s1-32B": "/mnt/sharedata/hdd/jiaxi/model/s1-32B",
     "DeepSeek-R1-Distill-Qwen-1.5B": "/mnt/sharedata/hdd/jiaxi/model/DeepSeek-R1-Distill-Qwen-1.5B",
-    "s1.1-3B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-3B",
-    "s1.1-7B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-7B",
-    "s1.1-14B": "/mnt/sharedata/ssd2/users/zhanghx/models/s1.1-14B",
+    "s1.1-3B": "/mnt/sharedata/hdd/zhanghx/ssd2/zhanghx/models/s1.1-3B",
+    "s1.1-7B": "/mnt/sharedata/hdd/zhanghx/ssd2/zhanghx/models/s1.1-7B",
+    "s1.1-14B": "/mnt/sharedata/hdd/zhanghx/ssd2/zhanghx/models/s1.1-14B",
 }
 
 class KeywordsStoppingCriteria(StoppingCriteria):
