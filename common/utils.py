@@ -58,17 +58,33 @@ def judge_answer(question, generation, ground_truth, client):
         else:
             return False ## GPT4o doesn't follow the instruct, giving a False by default
         
-def remove_duplicate_sentences(text, n=1):
-    sentences = text.split(". ")
+def remove_duplicate_sentences(text, n=5):
+    pattern = r'\.\s+'
+    matches = list(re.finditer(pattern, text))
+    sentences = []
+    separators = []
+    prev_end = 0
+    for match in matches:
+        sentence = text[prev_end:match.start()]
+        separator = match.group()
+        sentences.append(sentence)
+        separators.append(separator)
+        prev_end = match.end()
+    if prev_end < len(text):
+        sentences.append(text[prev_end:])
+    extended_separators = separators + ['']
     seen = set()
     cut_index = None
     for i in range(len(sentences) - n + 1):
-        group = ". ".join(sentences[i:i+n]) + ". "
+        group_sentences = sentences[i:i+n]
+        group = ". ".join([s.rstrip('.') for s in group_sentences]) + ". "
         if group in seen:
             cut_index = i
             break
         seen.add(group)
     if cut_index is not None:
-        return ". ".join(sentences[:cut_index]) + ". "
+        k = cut_index
     else:
-        return text
+        k = len(sentences)
+    reconstruct = ''.join([sentences[i] + extended_separators[i] for i in range(k)])
+    return reconstruct
