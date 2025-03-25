@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument("--alpha", type=float, default=0.1)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--partial", type=int, default=0)
-    parser.add_argument("--task", type=str, choices=["fullthinking", "min_token"], default="fullthinking")
+    parser.add_argument("--task", type=str, choices=["fullthinking", "min_token", "nodup_ans"], default="fullthinking")
 
     args = parser.parse_args()
 
@@ -25,11 +25,11 @@ if __name__ == '__main__':
     # pred_set = TTSDataset(name=args.pred_set, percent=args.cal_size)
     inference = LLMInference(args.model)
 
-    # client = AzureOpenAI(
-    #     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    #     api_key=os.environ["AZURE_OPENAI_API_KEY"],
-    #     api_version="2024-02-01"
-    # )
+    client = AzureOpenAI(
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        api_key=os.environ["AZURE_OPENAI_API_KEY"],
+        api_version="2024-02-01"
+    )
 
     # predictor = conformalTTS(inference, args.alpha, dataset, client=client)
     # predictor = conformalParTTS(inference, cal_set, pred_set, args.batch_size, args.partial, client)
@@ -38,3 +38,5 @@ if __name__ == '__main__':
         predictor.forcefull(10000)
     if args.task == "min_token":
         predictor.min_tokens()
+    if args.task == "nodup_ans":
+        predictor.nodup_answer(client)

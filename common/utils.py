@@ -38,7 +38,7 @@ def judge_answer(question, generation, ground_truth, client):
     if generation == ground_truth:
         return True
     else:
-        prompt = f"Given the question: {question}\nPlease help me determine whether the following two answers to the quesiton are equivalent, ignoring any errors that might be caused by the format and ignoring any numerical units\' difference.\nThe first answer: {generation}\nThe second answer: {ground_truth}\nPlease give your answer in the following format: 'Equivalent' or 'Not Equivalent'."
+        prompt = f"Given the question: {question}\nPlease help me determine whether the following two answers to the quesiton are mathematical equivalent, ignoring any errors that might be caused by the format and ignoring any numerical units\' difference.\nThe first answer: {generation}\nThe second answer: {ground_truth}\nPlease give your answer in the following format: 'Equivalent' or 'Not Equivalent'."
         response = client.chat.completions.create(
             model = "gpt-4o",
             n = 1,
@@ -55,8 +55,12 @@ def judge_answer(question, generation, ground_truth, client):
             return True
         elif decision == 'Not Equivalent':
             return False
+        elif 'Not Equivalent' in decision:
+            return False
+        elif 'Equivalent' in decision:
+            return True
         else:
-            return False ## GPT4o doesn't follow the instruct, giving a False by default
+            return False
         
 def remove_duplicate_sentences(text, n=5):
     pattern = r'\.\s+'

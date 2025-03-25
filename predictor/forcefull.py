@@ -83,6 +83,33 @@ class EfficientPred:
         gen_answers = [extract_s1_answer(o.outputs[0].text) for o in outputs]
         return gen_answers
     
+    def nodup_answer(self, client):
+        with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_fullthinking_nodup.jsonl", "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            questions = [json.loads(l)["question"] for l in lines][self.partial * self.per_partial:(self.partial+1) * self.per_partial]
+            ground_truth = [json.loads(l)["ground_truth"] for l in lines][self.partial * self.per_partial:(self.partial+1) * self.per_partial]
+            responses = [json.loads(l)["response"] for l in lines][self.partial * self.per_partial:(self.partial+1) * self.per_partial]
+        for i in tqdm(range(self.total_batch)):
+            question_batch = questions[i*self.batch_size:(i+1)*self.batch_size]
+            ground_truth_batch = ground_truth[i*self.batch_size:(i+1)*self.batch_size]
+            responses_batch = responses[i*self.batch_size:(i+1)*self.batch_size]
+            prompts = [self.template(q) + "<|im_start|>think" for q in question_batch]
+            prompts_token_ids = self.tokenizer(prompts)["input_ids"]
+            responses_token_ids = self.tokenizer(responses_batch)["input_ids"]
+            query_token_ids = [prompts_token_ids[j] + responses_token_ids[j] for j in range(len(prompts))]
+            final_answers = self.final_answer(query_token_ids)
+            flags = ["Wrong"]*len(prompts)
+            for j, (fa, gt) in enumerate(zip(final_answers, ground_truth_batch)):
+                if is_equiv(fa, gt):
+                    flags[j] = "Correct"
+                elif judge_answer(question_batch[j], fa, gt, client):
+                    flags[j] = "Correct"
+                elif judge_answer(question_batch[j], fa, gt, client):
+                    flags[j] = "Correct"
+            with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_nodup_withans.jsonl", "a", encoding="utf-8") as f:
+                for q, g, r, fa, flag in zip(question_batch, ground_truth_batch, responses_batch, final_answers, flags):
+                    f.write(json.dumps({"question": q, "ground_truth": g, "response": r, "final_answer": fa, "flag": flag}, ensure_ascii=False) + "\n")
+    
     def min_tokens(self, gpt=False, client=None):
         with open(f"outputs_exp/{self.LLMInference.name}_{self.dataset.name}_fullthinking_nodup.jsonl", "r", encoding="utf-8") as f:
             lines = f.readlines()
