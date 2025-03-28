@@ -1,7 +1,7 @@
 #!/bin/bash
 
 model="s1.1-3B"
-dataset="math500"
+dataset="gsm8k"
 
 ## fullthinking:
 if [ ! -f "outputs_exp/${model}_${dataset}_fullthinking.jsonl" ];then
